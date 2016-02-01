@@ -72,7 +72,7 @@ Now we will use our model to predict against the cleansed test set (which has no
 predict(modelFit, clean_testing)
 
 ```
-  
+I expect that the out of sample error rate would be at least greater than the in sample error rate. That is to say, at least ~1%
     
     
 #Citation 
