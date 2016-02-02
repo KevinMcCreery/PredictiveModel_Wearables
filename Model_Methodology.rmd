@@ -1,0 +1,81 @@
+---
+title: "Model_Methodology"
+author: "Kevin McCreery"
+date: "January 31, 2016"
+output: html_document
+---
+
+#Purpose
+This document was created in order to explain how, and why, I built a predictive model. The model is used tp determine the manner in which subject participants performed exercises. Details about the study background and data can be found through a link in the Citation section, at the end of this document.  
+
+#Preparation
+In order to create a predictive model, we'll need to do some up-front work. This includes clearing our workspace/environment of existing objects, loading the necessary packages, and downloading/reading the data sets.
+```{r, echo=TRUE, cache=TRUE}
+#Prep the workspace.
+rm(list = ls())
+setwd('C:/Users/Kevin/PredictiveModel_Wearables/')
+library(caret)
+library(AppliedPredictiveModeling)
+library(rpart)
+
+#If necessary, download both training and test data sets
+if (file.exists('pml-training.csv') != TRUE) 
+    {download.file(url = 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv', destfile = 'pml-training.csv')}
+if (file.exists('pml-testing.csv') != TRUE) 
+    {download.file(url = 'https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv', destfile = 'pml-testing.csv')}
+
+# Read in the datasets
+training <- read.csv(file = './pml-training.csv')
+testing <- read.csv(file = './pml-testing.csv')
+
+```
+Observations:  
+1. We have high dimensional data  
+2. Many dimensions seem to be irrelevant (empty/NA/NULL columns)  
+3. We may want to manually minimize irrelevant covariatesto improve processing time and prediction accuracy  
+  
+#Preprocessing Data
+I am removing those variables that appear to be noisy/mostly NULL / blank / NA values in the training csv input file. However, although I have not examined the testing data set, I will need to perform an identical cleansing, for consistency.
+```{r, echo=TRUE, cache=TRUE}
+#For brevity, I am using the column index numbers. In order to find these, I used the summary function to identify irrelevant columns.
+clean_training <- training[ , c(8:11, 37:49, 60:68, 84:86, 102, 113:124, 140, 151:160)]
+clean_testing <- testing[ , c(8:11, 37:49, 60:68, 84:86, 102, 113:124, 140, 151:160)]
+
+```
+
+
+
+#Model Selection, Cross Validation, and Training
+For my model, I have selected random forest method. I made this choice in order to overcome the overfitting problem I found with classification trees and to improve overall accuracy. The random forest method will be performing cross validation inside the function (25 bootstrap resamplings), therefore I see no reason to further cross-validate on the cleaned training data set.  
+
+Additionally, I chose to limit the number of trees that the model would use. I made this choice because of processing time, as well as my accuracy needs. I found that additional trees (default is 500) provided unnecessary accuracy boosts, and came at a high cost in terms of compute resources.
+  
+```{r, echo=TRUE, cache=TRUE}
+#Fit a model on our clean_training data.
+modelFit <- train(classe ~ ., data = clean_training, method = 'rf', ntree = 50)
+
+
+```
+
+
+
+#Examine results
+```{r, echo=TRUE, cache=TRUE}
+#We'll take a look at the modelFit output. We see a final in-sample accuracy of over 99% !
+modelFit
+
+```
+
+Now we will use our model to predict against the cleansed test set (which has not been viewed or used up to this point).
+```{r, echo=TRUE, cache=TRUE}
+#The results are 100% accurate. Awesome!
+predict(modelFit, clean_testing)
+
+```
+I expect that the out of sample error rate would be at least greater than the in sample error rate. That is to say, at least ~1%
+    
+    
+#Citation 
+##This work was performed using data generously provided by :  
+ Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+Read more: http://groupware.les.inf.puc-rio.br/har#ixzz3yry3rCMn
